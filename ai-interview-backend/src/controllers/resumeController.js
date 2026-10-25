@@ -1,39 +1,57 @@
-const Resume = require("../models/Resume");
-const openRouter = require("../config/openrouter");
 
-const fs = require("fs");
+const Resume = require("../models/Resume");
+const groq = require("../config/groq");
+const fs = require("fs/promises");
 const pdf = require("pdf-parse");
 
 exports.upload = async (req, res) => {
   try {
-    // Read uploaded PDF
-    const dataBuffer = fs.readFileSync(req.file.path);
+    if (!req.file) {
+      return res.status(400).json({
+        message: "No resume file uploaded",
+      });
+    }
 
-    // Extract text from PDF
+    // Extract text from the uploaded PDF
+    const dataBuffer = await fs.readFile(req.file.path);
     const data = await pdf(dataBuffer);
-
     const resumeText = data.text;
 
-    // Send Resume to OpenRouter
-    const response = await openRouter.post("/chat/completions", {
-      model: "nvidia/nemotron-3-ultra-550b-a55b:free",
-      messages: [
-        {
-          role: "user",
-          content: `
-You are an expert ATS Resume Analyzer.
+    if (!resumeText.trim()) {
+      return res.status(400).json({
+        message: "Could not extract text from the PDF",
+      });
+    }
 
-Analyze the following resume carefully.
+    // Get the target role
+    const role = (req.body.role || "").trim() || "General";
 
-Return ONLY a valid JSON object.
+    // Analyze the resume using Groq
+    const response = await groq.responses.create({
+      model: "openai/gpt-oss-20b",
+      instructions: `
+You are an expert ATS resume analyzer and technical recruiter.
 
-Do NOT include any text before or after the JSON.
-Do NOT use markdown.
-Do NOT wrap the JSON inside \`\`\` or \`\`\`json.
-Your entire response must be a single valid JSON object.
+Evaluate the resume for the target role: ${role}.
 
-Return EXACTLY this structure:
+Review:
+- Relevance of skills and projects to the target role.
+- Project depth, technologies, responsibilities, and measurable impact.
+- Missing skills and weaknesses.
+- Grammar, formatting, and ATS compatibility.
 
+Scoring rules:
+- All four scores must be whole numbers from 0 to 100.
+- 85-100: Exceptional.
+- 70-84: Strong.
+- 55-69: Average.
+- 40-54: Weak.
+- 0-39: Major improvements needed.
+- A typical decent resume should score 55-75.
+- Reserve scores above 90 for near-perfect resumes.
+- Score each category fairly and independently.
+
+Return a single JSON object with exactly these fields:
 {
   "overallScore": 0,
   "atsScore": 0,
@@ -44,39 +62,45 @@ Return EXACTLY this structure:
   "weaknesses": [],
   "projectReview": "",
   "resumeSuggestions": []
-  
 }
 
-Resume:
-
-${resumeText}
+Use numbers for scores, arrays of strings for list fields,
+and strings for projectReview.
+Do not include markdown or additional text.
 `,
+      input: resumeText,
+      text: {
+        format: {
+          type: "json_object",
         },
-      ],
+      },
+      temperature: 0,
     });
 
-    // Convert JSON string returned by AI into JavaScript Object
-    const analysis = JSON.parse(response.data.choices[0].message.content);
+    // Convert the JSON text into a JavaScript object
+    const analysis = JSON.parse(response.output_text);
+
+    // Save the resume and its analysis
     await Resume.create({
-
-        userId: req.user._id,
-
-        extractedResumeText: resumeText,
-
-        analysis: analysis
-
-    });
-    
-
-    res.json({
+      userId: req.user._id,
+      extractedResumeText: resumeText,
       analysis,
     });
 
+    // Return the analysis to the frontend
+    return res.json({ analysis });
   } catch (err) {
-    console.log(err.response?.data || err.message);
+    console.error("Resume analysis failed:", err);
 
-    res.status(500).json({
-      message: "Resume Analysis Failed",
+    return res.status(500).json({
+      message: "Resume analysis failed. Please try again.",
     });
+  } finally {
+    // Delete the temporary uploaded file
+    if (req.file?.path) {
+      fs.unlink(req.file.path).catch((err) => {
+        console.error("Failed to delete uploaded file:", err.message);
+      });
+    }
   }
-}
+};

@@ -12,6 +12,8 @@ import ProtectedRoute from "../components/common/ProtectedRoute";
 import Overview from "../components/dashboard/Overview";
 import Resume from "../pages/Resume";
 import History from "../pages/History";
+import Interview from "../pages/Interview";
+import InterviewRoom from "../pages/InterviewRoom";
 import Layout from "../components/layout/Layout";
 import InterviewDetail from "../pages/InterviewDetail";
 
@@ -48,10 +50,21 @@ function AppRoutes() {
           <Route path="result" element={<Result />} />
           <Route path="history" element={<History />} />
           <Route path="resume" element={<Resume />} />
+          <Route path="interview" element={<Interview />} />
           <Route path="history/:id" element={<InterviewDetail />} />
 
         </Route>
 
+
+        {/* AI Interview Room */}
+        <Route
+          path="/ai-interview/room"
+          element={
+            <ProtectedRoute>
+              <InterviewRoom />
+            </ProtectedRoute>
+          }
+        />
 
         {/* 404 */}
 

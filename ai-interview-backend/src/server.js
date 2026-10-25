@@ -1,4 +1,8 @@
-require("dotenv").config();
+require("dotenv").config({
+  // .env lives at the repo root, one level above ai-interview-backend/src.
+  // Resolving from __dirname works no matter what directory the server is started from.
+  path: require("path").join(__dirname, "..", ".env"),
+});
 const app = require("./app");
 const connectDB = require("./config/db");
 

@@ -31,6 +31,7 @@ function Resume() {
   },[]);
 
   const [file, setFile] = useState(null);
+  const [role, setRole] = useState("");
   const [loading, setLoading] = useState(false);
 
   const navigate = useNavigate();
@@ -54,10 +55,16 @@ function Resume() {
       return;
     }
 
+    if (!role.trim()) {
+      alert("Please enter the role you want to target.");
+      return;
+    }
+
     const token = localStorage.getItem("token");
 
     const formData = new FormData();
     formData.append("resume", file);
+    formData.append("role", role.trim());
 
     try {
 
@@ -123,6 +130,25 @@ function Resume() {
     <p className="text-gray-500 mb-8">
       Upload your latest resume in PDF format.
     </p>
+
+    <div className="mb-6">
+      <label className="block text-lg font-semibold text-gray-700 mb-3">
+        🎯 Target Role
+      </label>
+
+      <input
+        type="text"
+        value={role}
+        onChange={(e) => setRole(e.target.value)}
+        placeholder="e.g. Frontend Developer"
+        className="w-full border border-gray-300 rounded-xl px-5 py-3 text-gray-700 focus:outline-none focus:ring-2 focus:ring-purple-500"
+      />
+
+      <p className="text-sm text-gray-500 mt-2">
+        Type the role you want to target. Your resume will be analyzed for
+        that role.
+      </p>
+    </div>
 
     <input
       type="file"

@@ -1,7 +1,10 @@
 const multer = require("multer");
 
 const upload = multer({
-    dest: "uploads/"
+    dest: "uploads/",
+    limits: {
+        fileSize: 5 * 1024 * 1024 // 5MB max
+    }
 });
 
 module.exports = upload;

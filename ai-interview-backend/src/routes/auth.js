@@ -18,7 +18,7 @@ router.post("/signup",wrapAsync(authController.signup));
 router.post("/login", wrapAsync(authController.login));
 
 
-router.get("/profile", auth, wrapAsync(authController.profile))
+router.get("/profile", wrapAsync(auth), wrapAsync(authController.profile))
 
 
 module.exports = router

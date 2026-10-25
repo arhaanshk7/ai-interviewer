@@ -85,7 +85,7 @@ exports.login =async (req, res) => {
 
 }
 
-exports.profile =(req,res)=>{
+exports.profile = async (req,res)=>{
     res.json({
         message:"profile accessed",
         user:req.user

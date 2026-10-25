@@ -29,7 +29,13 @@ app.use((err, req, res, next) => {
 
     console.log(err);
 
-    res.status(err.statusCode || 500).json({
+    // If a middleware/controller already sent a response (e.g. 401/400),
+    // sending again throws "Cannot set headers after they are sent".
+    if (res.headersSent) {
+        return next(err);
+    }
+
+    res.status(err.statusCode || err.status || 500).json({
         message: err.message || "Something went wrong"
     });
 
